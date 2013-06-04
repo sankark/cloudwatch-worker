@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xmlns:rabbit="http://www.springframework.org/schema/rabbit" 
+xsi:schemaLocation="http://www.springframework.org/schema/beans 
+http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+http://www.springframework.org/schema/rabbit 
+http://www.springframework.org/schema/rabbit/spring-rabbit-1.0.xsd">
+    <rabbit:connection-factory id="connectionFactory" host="i-88b704f6" username="guest" password="guest" />
+    <rabbit:admin id="rabbitAdmin" connection-factory="connectionFactory" />
+    <!-- Create myAnonymousQueue queue -->
+    <rabbit:queue id="JobDefinitionQueue" name="JobDefinitionQueue" exclusive="false" />
+     <rabbit:queue id="JobWorkerQueue" name="JobWorkerQueue" exclusive="false" />
+     <rabbit:queue id="ResponseQueue" name="ResponseQueue" exclusive="false" />
+    <!-- create myExchange and bind myAnonymousQueue with my.routingkey.1 to the TUTORIAL-EXCHANGE-->
+    <rabbit:topic-exchange id="jobExchange" name="JOB-EXCHANGE">
+        <rabbit:bindings>
+            <rabbit:binding queue="JobDefinitionQueue" pattern="job.new.*"></rabbit:binding>
+            <rabbit:binding queue="JobWorkerQueue" pattern="job.execution.request.ec2"></rabbit:binding>
+             <rabbit:binding queue="ResponseQueue" pattern="job.response.*"></rabbit:binding>
+        </rabbit:bindings>
+    </rabbit:topic-exchange>
+    <!-- instantiate TutorialListener -->
+    
+  
+	
+	<bean id="jobRequestHandler"
+		class="com.gto.aws.service.JobRequestHandler">
+	</bean>
+    <bean id="jobRequestListener"
+		class="org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter">
+		<property name="delegate" ref="jobRequestHandler" />
+		<property name="messageConverter" ref="jobRequestConvertor"></property>
+	</bean>
+	
+	 
+    <bean id="jobRequestConvertor" class="org.springframework.amqp.support.converter.JsonMessageConverter" />
+    <!-- glue the listener and myAnonymousQueue to the container-->
+    <rabbit:listener-container  id="jobRequestListenerContainer" message-converter="jobRequestConvertor"  connection-factory="connectionFactory" concurrency="10" >
+        <rabbit:listener ref="jobRequestListener" queues="JobWorkerQueue" /></rabbit:listener-container>
+    <bean id="RequestMessageListenerContainer" class="org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer">
+    <property name="connectionFactory" ref="connectionFactory"/>
+    <property name="queueNames" value="JobWorkerQueue" />
+	<property name="concurrentConsumers" value="1" />
+	<property name="messageListener" ref="jobRequestListener" />
+	<property name="autoStartup" value="true" />
+  </bean>
+  
+  
+</beans>
