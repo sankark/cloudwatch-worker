@@ -8,19 +8,22 @@ import com.basho.riak.client.RiakRetryFailedException;
 import com.basho.riak.client.bucket.Bucket;
 import com.basho.riak.client.cap.UnresolvedConflictException;
 import com.basho.riak.client.convert.ConversionException;
+import com.gto.aws.model.JobConstants;
 import com.gto.aws.service.RiakFactory;
 
 import java.lang.reflect.ParameterizedType;
 import java.util.List;
 
 public abstract class GenericDAO<T> implements IGenericDAO<T>{
-private Bucket bucket; 
+protected Bucket bucket; 
+protected Bucket cleanupBucket; 
 IRiakClient riakClient;
 protected Class<T> clazz;
 public GenericDAO(String Bucket){
 	try {
 		riakClient = RiakFactory.getRiakClient();
 		System.out.println(riakClient);
+		this.cleanupBucket=riakClient.fetchBucket(JobConstants.CLEANUP_BUCKET).execute();
 		this.bucket = riakClient.fetchBucket(Bucket).execute();
 		clazz = ((Class<T>)((ParameterizedType)getClass().getGenericSuperclass()).getActualTypeArguments()[0]);
 	} catch (RiakRetryFailedException e) {
@@ -80,7 +83,7 @@ public T get(T id){
 public T put(T object){
 	T myObject=null;
 	try {
-		
+		updateCleanupBucket(object);
 		myObject = bucket.store(object).execute();
 	} catch (RiakRetryFailedException e) {
 		// TODO Auto-generated catch block
@@ -94,6 +97,8 @@ public T put(T object){
 	}
 	return myObject;
 }
+
+protected abstract void updateCleanupBucket(T object) ;
 
 /* (non-Javadoc)
  * @see com.gto.aws.service.IGenericDAO#delete(java.lang.String)

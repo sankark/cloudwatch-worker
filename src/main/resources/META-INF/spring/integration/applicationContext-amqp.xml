@@ -2,22 +2,33 @@
 <beans xmlns="http://www.springframework.org/schema/beans" 
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
 xmlns:rabbit="http://www.springframework.org/schema/rabbit" 
+xmlns:context="http://www.springframework.org/schema/context"
 xsi:schemaLocation="http://www.springframework.org/schema/beans 
 http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+	  http://www.springframework.org/schema/context
+	  http://www.springframework.org/schema/context/spring-context.xsd
 http://www.springframework.org/schema/rabbit 
 http://www.springframework.org/schema/rabbit/spring-rabbit-1.0.xsd">
-    <rabbit:connection-factory id="connectionFactory" host="i-88b704f6" username="guest" password="guest" />
+
+	<context:property-placeholder
+		location="classpath:META-INF/spring/amqp.properties" />
+		
+    <rabbit:connection-factory id="connectionFactory" host="${rabbit.host}" username="${rabbit.username}" password="${rabbit.password}" />
     <rabbit:admin id="rabbitAdmin" connection-factory="connectionFactory" />
     <!-- Create myAnonymousQueue queue -->
     <rabbit:queue id="JobDefinitionQueue" name="JobDefinitionQueue" exclusive="false" />
      <rabbit:queue id="JobWorkerQueue" name="JobWorkerQueue" exclusive="false" />
      <rabbit:queue id="ResponseQueue" name="ResponseQueue" exclusive="false" />
+     <rabbit:queue id="CostJobWorkerQueue" name="CostJobWorkerQueue" exclusive="false" />
+      <rabbit:queue id="CostResponseQueue" name="CostResponseQueue" exclusive="false" />
     <!-- create myExchange and bind myAnonymousQueue with my.routingkey.1 to the TUTORIAL-EXCHANGE-->
     <rabbit:topic-exchange id="jobExchange" name="JOB-EXCHANGE">
         <rabbit:bindings>
             <rabbit:binding queue="JobDefinitionQueue" pattern="job.new.*"></rabbit:binding>
             <rabbit:binding queue="JobWorkerQueue" pattern="job.execution.request.ec2"></rabbit:binding>
              <rabbit:binding queue="ResponseQueue" pattern="job.response.*"></rabbit:binding>
+             <rabbit:binding queue="CostJobWorkerQueue" pattern="job.cost.request.*"></rabbit:binding>
+              <rabbit:binding queue="CostResponseQueue" pattern="job.cost.response.*"></rabbit:binding>
         </rabbit:bindings>
     </rabbit:topic-exchange>
     <!-- instantiate TutorialListener -->
@@ -27,12 +38,22 @@ http://www.springframework.org/schema/rabbit/spring-rabbit-1.0.xsd">
 	<bean id="jobRequestHandler"
 		class="com.gto.aws.service.JobRequestHandler">
 	</bean>
+	
+	<bean id="costJobRequestHandler"
+		class="com.gto.aws.service.CostJobRequestHandler">
+	</bean>
+	
     <bean id="jobRequestListener"
 		class="org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter">
 		<property name="delegate" ref="jobRequestHandler" />
 		<property name="messageConverter" ref="jobRequestConvertor"></property>
 	</bean>
 	
+	 <bean id="costJobRequestListener"
+		class="org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter">
+		<property name="delegate" ref="costJobRequestHandler" />
+		<property name="messageConverter" ref="jobRequestConvertor"></property>
+	</bean>
 	 
     <bean id="jobRequestConvertor" class="org.springframework.amqp.support.converter.JsonMessageConverter" />
     <!-- glue the listener and myAnonymousQueue to the container-->
@@ -46,5 +67,15 @@ http://www.springframework.org/schema/rabbit/spring-rabbit-1.0.xsd">
 	<property name="autoStartup" value="true" />
   </bean>
   
+      <rabbit:listener-container  id="costJobRequestListenerContainer" message-converter="jobRequestConvertor"  connection-factory="connectionFactory" concurrency="10" >
+        <rabbit:listener ref="costJobRequestListener" queues="CostJobWorkerQueue" /></rabbit:listener-container>
+  
+      <bean id="CostRequestMessageListenerContainer" class="org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer">
+    <property name="connectionFactory" ref="connectionFactory"/>
+    <property name="queueNames" value="CostJobWorkerQueue" />
+	<property name="concurrentConsumers" value="1" />
+	<property name="messageListener" ref="costJobRequestListener" />
+	<property name="autoStartup" value="true" />
+  </bean>
   
 </beans>

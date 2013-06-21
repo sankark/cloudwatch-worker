@@ -2,6 +2,8 @@ package com.gto.aws.service;
  
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.cognizant.cloudmetrics.util.StoreDetailsUtil;
+import com.gto.aws.model.CostJobRequest;
 import com.gto.aws.model.JobConstants;
 import com.gto.aws.model.JobRequest;
 
@@ -11,7 +13,7 @@ import com.gto.aws.model.JobRequest;
  *  which picks up message in the  TUTORIAL_EXCHANGE with a routing pattern of
  *  my.routingkey.1  specified in rabbt-listener-contet.xml file.
  */
-public class JobRequestHandler {
+public class CostJobRequestHandler {
 
 	@Autowired
 	private CpuUtilizationJob cpuUtilizationJob;
@@ -49,14 +51,16 @@ public class JobRequestHandler {
     	request.setResponse(JobConstants.COMPLETED);
     	return request;
     }*/
-	public JobRequest handleMessage(JobRequest request) {
+	public CostJobRequest handleMessage(CostJobRequest request) {
 		try {
-			cpuUtilizationJob.listMetrics(request);
+			System.out.println("costJob Started");
+			new StoreDetailsUtil().storeCloudCostDetails(request.getAccessKey(), request.getSecretKey());
 		} catch (Exception e) {
 			request.setResponse(JobConstants.FAILED);
 			// TODO: handle exception
 		}
 		request.setResponse(JobConstants.COMPLETED);
+		System.out.println("costJob completed");
 		return request;
 		
 	}

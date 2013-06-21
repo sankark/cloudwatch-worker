@@ -32,7 +32,12 @@
 		<constructor-arg ref="credentialFile"></constructor-arg>
 		</bean>
 		<bean id="cloudWatchService" class="com.gto.aws.service.CloudWatchService"/>
+		<bean id="cpuUtilizationJob" class="com.gto.aws.service.CpuUtilizationJob"/>
 		<bean id="cloudWatchClient" class="com.amazonaws.services.cloudwatch.AmazonCloudWatchAsyncClient">
+		<constructor-arg ref="awsCredentials"></constructor-arg>
+		</bean>
+		
+		<bean id="ec2Client" class="com.amazonaws.services.ec2.AmazonEC2Client">
 		<constructor-arg ref="awsCredentials"></constructor-arg>
 		</bean>
 		
@@ -41,5 +46,60 @@
   <constructor-arg value="i-88b704f6"/>
   <constructor-arg value="8081"/>
 	</bean>
+	
+	
+	<bean id="jobRequestScheduler" class="com.gto.aws.service.CpuUsageScheduler">
+  
+</bean>
+
+<bean name="cpuScheduler" class="org.springframework.scheduling.quartz.JobDetailBean">
+  <property name="jobClass" value="com.gto.aws.service.CpuUsageScheduler" />
+  <property name="jobDataAsMap">
+    <map>
+      <entry key="timeout" value="5" />
+    </map>
+  </property>
+</bean>
+
+<bean name="cleanupScheduler" class="org.springframework.scheduling.quartz.JobDetailBean">
+  <property name="jobClass" value="com.gto.aws.service.CleanupScheduler" />
+  <property name="jobDataAsMap">
+    <map>
+      <entry key="timeout" value="5" />
+    </map>
+  </property>
+</bean>
+
+	<bean id="cronTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+  <property name="jobDetail" ref="cpuScheduler"/>
+	<!-- run every morning at 6 AM -->
+  <property name="cronExpression" value="0 0 1 * * ?"/>
+</bean>
+
+	<bean id="cronTrigger2" class="org.springframework.scheduling.quartz.CronTriggerBean">
+  <property name="jobDetail" ref="cleanupScheduler"/>
+	<!-- run every morning at 6 AM -->
+  <property name="cronExpression" value="0 0 1 * * ?"/>
+</bean>
+
+
+<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+  <property name="triggers">
+    <list>
+      <ref bean="cronTrigger"/>
+	<ref bean="simpleTrigger"/>
+    </list>
+  </property>
+</bean>
+
+<bean id="simpleTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
+  <!-- see the example of method invoking job above -->
+  <property name="jobDetail" ref="exampleJob"/>
+	<!-- 10 seconds -->
+  <property name="startDelay" value="10000"/>
+	<!-- repeat every 50 seconds -->
+  <property name="repeatInterval" value="20000000"/>
+</bean>
+
 
 </beans>

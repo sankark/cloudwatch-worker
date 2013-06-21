@@ -7,6 +7,7 @@ import com.basho.riak.client.IRiakClient;
 import com.basho.riak.client.convert.Converter;
 import com.gto.aws.model.Ec2CpuUtilizationInstance;
 import com.gto.aws.model.Ec2CpuUtilizationJob;
+import com.gto.aws.model.InstanceHistory;
 import com.gto.aws.model.JobConstants;
 import com.gto.aws.model.JobRequestInstance;
 
@@ -19,7 +20,7 @@ public class ConvertorFactory {
 	public interface IJobRequestConvertor extends IGenericCryoConvertor<JobRequestInstance> {}
 	
 	public interface IJobInstanceConvertor extends IGenericCryoConvertor<Ec2CpuUtilizationInstance> {}
-		
+	public interface IInstanceHistoryConvertor extends IGenericCryoConvertor<InstanceHistory> {}
 	
 	// The use those interfaces as we declare entity-specific DAOs
 
@@ -29,6 +30,12 @@ public class ConvertorFactory {
 		}
 	}
 	
+	
+	public static class InstanceHistoryConvertor extends GenericCryoConvertor<InstanceHistory> implements IInstanceHistoryConvertor {
+		public InstanceHistoryConvertor(){
+			super(JobConstants.INSATNCE_HISTORY);
+		}
+	} 
 	public static class JobRequestConvertor extends GenericCryoConvertor<JobRequestInstance> implements IJobRequestConvertor {
 		public JobRequestConvertor(){
 			super(JobConstants.JOB_REQUESTS);
@@ -46,6 +53,10 @@ public class ConvertorFactory {
 	
 	public static Converter<Ec2CpuUtilizationJob> getJobConvertor() {
 		return new JobConvertor();
+	}
+	
+	public static Converter<InstanceHistory> getInstanceHistoryConvertor() {
+		return new InstanceHistoryConvertor();
 	}
 	
 	public static Converter<JobRequestInstance> getJobRequestConvertor() {

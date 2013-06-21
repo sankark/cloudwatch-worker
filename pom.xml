@@ -183,5 +183,14 @@
             <artifactId>jstl</artifactId>
             <version>1.2</version>
         </dependency>
+
+
+
+
+        <dependency>
+        	<groupId>org.gto.cloudmetrics</groupId>
+        	<artifactId>cloudmetrics</artifactId>
+        	<version>1</version>
+        </dependency>
     </dependencies>
 </project>
